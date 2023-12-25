@@ -16,28 +16,19 @@ Uart::Uart() : lock{std::mutex()},
 
 void Uart::listen()
 {
-    char c;
-    while (std::cin >> c)
-    {
-        std::unique_lock<std::mutex> ulock(lock);
-        while ((buffer[UART_LSR - UART_BASE] & UART_LSR_RX) == 1)
-        {
-            condvar.wait(ulock);
-        }
-        if (c == '_')
-        {
-            buffer[UART_RHR - UART_BASE] = ' ';
-        }
-        else if (c == ';')
-        {
-            buffer[UART_RHR - UART_BASE] = '\n';
-        }
-        else
-        {
-            buffer[UART_RHR - UART_BASE] = c;
-        }
-        interrupting.store(true);
-        buffer[UART_LSR - UART_BASE] |= UART_LSR_RX;
+    std::string s;
+    while (std::getline(std::cin, s)) {
+       s.push_back('\n');
+       for (char c : s) {
+           std::unique_lock<std::mutex> ulock(lock);
+           while ((buffer[UART_LSR - UART_BASE] & UART_LSR_RX) == 1)
+           {
+               condvar.wait(ulock);
+           }
+           buffer[UART_RHR - UART_BASE] = c;
+           interrupting.store(true);
+           buffer[UART_LSR - UART_BASE] |= UART_LSR_RX;
+       }
     }
 }
 

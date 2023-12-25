@@ -2,6 +2,7 @@
 #define DEVICE_H
 
 #include <optional>
+#include <utility>
 
 #include "exception.h"
 

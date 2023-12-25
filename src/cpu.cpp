@@ -578,7 +578,7 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             {
                 uint32_t dividend = registers[rs1];
                 uint32_t divisor = registers[rs2];
-                registers[rd] = (int32_t)(dividend / divisor);
+                registers[rd] = (int32_t)(dividend % divisor);
             }
             return std::nullopt;
         }

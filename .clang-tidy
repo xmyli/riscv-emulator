@@ -1,0 +1,11 @@
+# .clang-tidy
+Checks: >
+  -*,
+  cppcoreguidelines-*,
+  bugprone-*,
+  concurrency-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*

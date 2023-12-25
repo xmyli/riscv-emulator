@@ -18,5 +18,5 @@ This projects includes a CMakeLists.txt file for building using cmake.
    ```
 3. Run the executable using the provided binary files as parameters.
    ```
-   ./build/emulator ./xv6-kernel.bin ./xv6-fs.img
+   ./build/riscv-emulator ./xv6-kernel.bin ./xv6-fs.img
    ```
