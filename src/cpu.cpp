@@ -1,6 +1,6 @@
 #include <cstdint>
-#include <vector>
 #include <iostream>
+#include <vector>
 
 #include "cpu.h"
 
@@ -10,36 +10,29 @@ Cpu::Cpu(std::vector<uint8_t> bytes, std::vector<uint8_t> disk_image) : register
                                                                         mode{Mode::Machine},
                                                                         bus{Bus(bytes, disk_image)},
                                                                         enable_paging{false},
-                                                                        page_table{0}
-{
+                                                                        page_table{0} {
     registers[2] = MEMORY_BASE + MEMORY_SIZE;
 }
 
-std::pair<uint64_t, std::optional<Exception>> Cpu::load(uint64_t addr, int nBytes)
-{
+std::pair<uint64_t, std::optional<Exception>> Cpu::load(uint64_t addr, int nBytes) {
     auto [p_addr, err] = translate(addr, AccessType::Load);
-    if (err.has_value())
-    {
+    if (err.has_value()) {
         return std::make_pair(p_addr, err);
     }
     auto [data, errr] = bus.load(p_addr, nBytes);
     return std::make_pair(data, errr);
 }
 
-std::optional<Exception> Cpu::store(uint64_t addr, int nBytes, uint64_t value)
-{
+std::optional<Exception> Cpu::store(uint64_t addr, int nBytes, uint64_t value) {
     auto [p_addr, err] = translate(addr, AccessType::Store);
-    if (err.has_value())
-    {
+    if (err.has_value()) {
         return err;
     }
     return bus.store(p_addr, nBytes, value);
 }
 
-uint64_t Cpu::load_csr(uint64_t addr)
-{
-    switch (addr)
-    {
+uint64_t Cpu::load_csr(uint64_t addr) {
+    switch (addr) {
     case SIE:
         return csrs[MIE] & csrs[MIDELEG];
     default:
@@ -47,10 +40,8 @@ uint64_t Cpu::load_csr(uint64_t addr)
     }
 }
 
-void Cpu::store_csr(uint64_t addr, uint64_t value)
-{
-    switch (addr)
-    {
+void Cpu::store_csr(uint64_t addr, uint64_t value) {
+    switch (addr) {
     case SIE:
         csrs[MIE] = (csrs[MIE] & ~csrs[MIDELEG]) | (value & csrs[MIDELEG]);
         return;
@@ -60,23 +51,19 @@ void Cpu::store_csr(uint64_t addr, uint64_t value)
     }
 }
 
-std::pair<uint32_t, std::optional<Exception>> Cpu::fetch()
-{
+std::pair<uint32_t, std::optional<Exception>> Cpu::fetch() {
     auto [p_pc, translate_err] = translate(pc, AccessType::Instruction);
-    if (translate_err.has_value())
-    {
+    if (translate_err.has_value()) {
         return std::make_pair(0, translate_err);
     }
     auto [instruction, load_err] = bus.load(p_pc, 4);
-    if (load_err.has_value())
-    {
+    if (load_err.has_value()) {
         return std::make_pair(0, Exception(ExceptionType::InstructionAccessFault));
     }
     return std::make_pair(instruction, std::nullopt);
 }
 
-std::optional<Exception> Cpu::execute(uint32_t instruction)
-{
+std::optional<Exception> Cpu::execute(uint32_t instruction) {
     registers[0] = 0;
 
     auto opcode = instruction & 0x0000007f;
@@ -86,87 +73,70 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
     auto funct3 = (instruction & 0x00007000) >> 12;
     auto funct7 = (instruction & 0xfe000000) >> 25;
 
-    switch (opcode)
-    {
-    case 0x3:
-    {
+    switch (opcode) {
+    case 0x3: {
         uint64_t imm = (int64_t)(int32_t)instruction >> 20;
         uint64_t addr = registers[rs1] + imm;
 
-        switch (funct3)
-        {
-        case 0x0:
-        {
+        switch (funct3) {
+        case 0x0: {
             // lb
             auto [data, err] = load(addr, 1);
-            if (err.has_value())
-            {
+            if (err.has_value()) {
                 return err;
             }
             registers[rd] = (int64_t)(int8_t)data;
             return std::nullopt;
         }
-        case 0x1:
-        {
+        case 0x1: {
             // lh
             auto [data, err] = load(addr, 2);
-            if (err.has_value())
-            {
+            if (err.has_value()) {
                 return err;
             }
             registers[rd] = (int64_t)(int16_t)data;
             return std::nullopt;
         }
-        case 0x2:
-        {
+        case 0x2: {
             // lw
             auto [data, err] = load(addr, 4);
-            if (err.has_value())
-            {
+            if (err.has_value()) {
                 return err;
             }
             registers[rd] = (int64_t)(int32_t)data;
             return std::nullopt;
         }
-        case 0x3:
-        {
+        case 0x3: {
             // ld
             auto [data, err] = load(addr, 8);
-            if (err.has_value())
-            {
+            if (err.has_value()) {
                 return err;
             }
             registers[rd] = data;
             return std::nullopt;
         }
-        case 0x4:
-        {
+        case 0x4: {
             // lbu
             auto [data, err] = load(addr, 1);
-            if (err.has_value())
-            {
+            if (err.has_value()) {
                 return err;
             }
             registers[rd] = data;
             return std::nullopt;
         }
-        case 0x5:
-        {
+        case 0x5: {
             // lhu
             auto [data, err] = load(addr, 2);
-            if (err.has_value())
-            {
+            if (err.has_value()) {
                 return err;
             }
             registers[rd] = data;
             return std::nullopt;
         }
-        case 0x6:
-        {
+        case 0x6: {
             // lwu
             auto [data, err] = load(addr, 4);
-            if (err.has_value())
-            {
+            if (err.has_value()) {
                 return err;
             }
             registers[rd] = data;
@@ -177,10 +147,8 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             return Exception(ExceptionType::IllegalInstruction);
         }
     }
-    case 0xf:
-    {
-        switch (funct3)
-        {
+    case 0xf: {
+        switch (funct3) {
         case 0x0:
             // fence
             return std::nullopt;
@@ -189,13 +157,11 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             return Exception(ExceptionType::IllegalInstruction);
         }
     }
-    case 0x13:
-    {
+    case 0x13: {
         uint64_t imm = (int64_t)(int32_t)(instruction & 0xfff00000) >> 20;
         uint32_t shamt = imm & 0x3f;
 
-        switch (funct3)
-        {
+        switch (funct3) {
         case 0x0:
             // addi
             registers[rd] = registers[rs1] + imm;
@@ -217,20 +183,15 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             registers[rd] = registers[rs1] ^ imm;
             return std::nullopt;
         case 0x5:
-            if (funct7 >> 1 == 0x00)
-            {
+            if (funct7 >> 1 == 0x00) {
                 // srli
                 registers[rd] = registers[rs1] >> shamt;
                 return std::nullopt;
-            }
-            else if (funct7 >> 1 == 0x10)
-            {
+            } else if (funct7 >> 1 == 0x10) {
                 // srai
                 registers[rd] = (uint64_t)((int64_t)registers[rs1] >> shamt);
                 return std::nullopt;
-            }
-            else
-            {
+            } else {
                 std::cout << "IllegalInstruction(3): " << instruction << std::endl;
                 return Exception(ExceptionType::IllegalInstruction);
             }
@@ -247,20 +208,17 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             return Exception(ExceptionType::IllegalInstruction);
         }
     }
-    case 0x17:
-    {
+    case 0x17: {
         // auip
         uint64_t imm = (int64_t)(int32_t)(instruction & 0xfffff000);
         registers[rd] = pc + imm - 4;
         return std::nullopt;
     }
-    case 0x1b:
-    {
+    case 0x1b: {
         uint64_t imm = (int64_t)(int32_t)instruction >> 20;
         uint32_t shamt = imm & 0x1f;
 
-        switch (funct3)
-        {
+        switch (funct3) {
         case 0x0:
             // addiw
             registers[rd] = (int64_t)(int32_t)(registers[rs1] + imm);
@@ -270,20 +228,15 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             registers[rd] = (int64_t)(int32_t)(registers[rs1] << shamt);
             return std::nullopt;
         case 0x5:
-            if (funct7 == 0x00)
-            {
+            if (funct7 == 0x00) {
                 // srliw
                 registers[rd] = (int64_t)(int32_t)((uint32_t)registers[rs1] >> shamt);
                 return std::nullopt;
-            }
-            else if (funct7 == 0x20)
-            {
+            } else if (funct7 == 0x20) {
                 // sraiw
                 registers[rd] = (int64_t)((int32_t)registers[rs1] >> shamt);
                 return std::nullopt;
-            }
-            else
-            {
+            } else {
                 std::cout << "IllegalInstruction(5): " << instruction << std::endl;
                 return Exception(ExceptionType::IllegalInstruction);
             }
@@ -292,49 +245,39 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             return Exception(ExceptionType::IllegalInstruction);
         }
     }
-    case 0x23:
-    {
+    case 0x23: {
         uint64_t imm = (uint64_t)((int64_t)(int32_t)(instruction & 0xfe000000) >> 20) | ((instruction >> 7) & 0x1f);
         uint64_t addr = registers[rs1] + imm;
 
-        switch (funct3)
-        {
-        case 0x0:
-        {
+        switch (funct3) {
+        case 0x0: {
             // sb
             auto err = store(addr, 1, registers[rs2]);
-            if (err.has_value())
-            {
+            if (err.has_value()) {
                 return err;
             }
             return std::nullopt;
         }
-        case 0x1:
-        {
+        case 0x1: {
             // sh
             auto err = store(addr, 2, registers[rs2]);
-            if (err.has_value())
-            {
+            if (err.has_value()) {
                 return err;
             }
             return std::nullopt;
         }
-        case 0x2:
-        {
+        case 0x2: {
             // sw
             auto err = store(addr, 4, registers[rs2]);
-            if (err.has_value())
-            {
+            if (err.has_value()) {
                 return err;
             }
             return std::nullopt;
         }
-        case 0x3:
-        {
+        case 0x3: {
             // sd
             auto err = store(addr, 8, registers[rs2]);
-            if (err.has_value())
-            {
+            if (err.has_value()) {
                 return err;
             }
             return std::nullopt;
@@ -344,41 +287,32 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             return Exception(ExceptionType::IllegalInstruction);
         }
     }
-    case 0x2f:
-    {
+    case 0x2f: {
         auto funct5 = (funct7 & 0b1111100) >> 2;
-        switch (funct3)
-        {
+        switch (funct3) {
         case 0x2:
-            switch (funct5)
-            {
-            case 0x00:
-            {
+            switch (funct5) {
+            case 0x00: {
                 // amoadd.w
                 auto [temp, ld_err] = load(registers[rs1], 4);
-                if (ld_err.has_value())
-                {
+                if (ld_err.has_value()) {
                     return ld_err;
                 }
                 auto st_err = store(registers[rs1], 4, temp + registers[rs2]);
-                if (st_err.has_value())
-                {
+                if (st_err.has_value()) {
                     return st_err;
                 }
                 registers[rd] = temp;
                 return std::nullopt;
             }
-            case 0x01:
-            {
+            case 0x01: {
                 // amoswap.w
                 auto [temp, ld_err] = load(registers[rs1], 4);
-                if (ld_err.has_value())
-                {
+                if (ld_err.has_value()) {
                     return ld_err;
                 }
                 auto st_err = store(registers[rs1], 4, registers[rs2]);
-                if (st_err.has_value())
-                {
+                if (st_err.has_value()) {
                     return st_err;
                 }
                 registers[rd] = temp;
@@ -389,35 +323,28 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
                 return Exception(ExceptionType::IllegalInstruction);
             }
         case 0x3:
-            switch (funct5)
-            {
-            case 0x00:
-            {
+            switch (funct5) {
+            case 0x00: {
                 // amoadd.d
                 auto [temp, ld_err] = load(registers[rs1], 8);
-                if (ld_err.has_value())
-                {
+                if (ld_err.has_value()) {
                     return ld_err;
                 }
                 auto st_err = store(registers[rs1], 8, temp + registers[rs2]);
-                if (st_err.has_value())
-                {
+                if (st_err.has_value()) {
                     return st_err;
                 }
                 registers[rd] = temp;
                 return std::nullopt;
             }
-            case 0x01:
-            {
+            case 0x01: {
                 // amoswap.d
                 auto [temp, ld_err] = load(registers[rs1], 8);
-                if (ld_err.has_value())
-                {
+                if (ld_err.has_value()) {
                     return ld_err;
                 }
                 auto st_err = store(registers[rs1], 8, registers[rs2]);
-                if (st_err.has_value())
-                {
+                if (st_err.has_value()) {
                     return st_err;
                 }
                 registers[rd] = temp;
@@ -432,33 +359,24 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             return Exception(ExceptionType::IllegalInstruction);
         }
     }
-    case 0x33:
-    {
+    case 0x33: {
         uint32_t shamt = (uint64_t)(registers[rs2] & 0x3f);
 
-        switch (funct3)
-        {
+        switch (funct3) {
         case 0x0:
-            if (funct7 == 0x00)
-            {
+            if (funct7 == 0x00) {
                 // add
                 registers[rd] = registers[rs1] + registers[rs2];
                 return std::nullopt;
-            }
-            else if (funct7 == 0x01)
-            {
+            } else if (funct7 == 0x01) {
                 // mul
                 registers[rd] = registers[rs1] * registers[rs2];
                 return std::nullopt;
-            }
-            else if (funct7 == 0x20)
-            {
+            } else if (funct7 == 0x20) {
                 // sub
                 registers[rd] = registers[rs1] - registers[rs2];
                 return std::nullopt;
-            }
-            else
-            {
+            } else {
                 std::cout << "IllegalInstruction(11): " << instruction << std::endl;
                 return Exception(ExceptionType::IllegalInstruction);
             }
@@ -479,14 +397,11 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             registers[rd] = registers[rs1] ^ registers[rs2];
             return std::nullopt;
         case 0x5:
-            if (funct7 == 0x00)
-            {
+            if (funct7 == 0x00) {
                 // srl
                 registers[rd] = registers[rs1] >> shamt;
                 return std::nullopt;
-            }
-            else if (funct7 == 0x20)
-            {
+            } else if (funct7 == 0x20) {
                 // sra
                 registers[rd] = (int64_t)registers[rs1] >> shamt;
                 return std::nullopt;
@@ -506,27 +421,21 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             return Exception(ExceptionType::IllegalInstruction);
         }
     }
-    case 0x37:
-    {
+    case 0x37: {
         // lu
         registers[rd] = (int64_t)(int32_t)(instruction & 0xfffff000);
         return std::nullopt;
     }
-    case 0x3b:
-    {
+    case 0x3b: {
         uint32_t shamt = registers[rs2] & 0x1f;
 
-        switch (funct3)
-        {
+        switch (funct3) {
         case 0x0:
-            if (funct7 == 0x00)
-            {
+            if (funct7 == 0x00) {
                 // addw
                 registers[rd] = (int64_t)(int32_t)(registers[rs1] + registers[rs2]);
                 return std::nullopt;
-            }
-            else if (funct7 == 0x20)
-            {
+            } else if (funct7 == 0x20) {
                 // subw
                 registers[rd] = (int32_t)(registers[rs1] - registers[rs2]);
                 return std::nullopt;
@@ -538,44 +447,32 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             registers[rd] = (int32_t)((uint32_t)registers[rs1] << shamt);
             return std::nullopt;
         case 0x5:
-            if (funct7 == 0x00)
-            {
+            if (funct7 == 0x00) {
                 // srlw
                 registers[rd] = (int32_t)((uint32_t)registers[rs1] >> shamt);
                 return std::nullopt;
-            }
-            else if (funct7 == 0x01)
-            {
+            } else if (funct7 == 0x01) {
                 // divu
-                if (registers[rs2] == 0)
-                {
+                if (registers[rs2] == 0) {
                     registers[rd] = 0xffffffffffffffff;
-                }
-                else
-                {
+                } else {
                     auto dividend = registers[rs1];
                     auto divisor = registers[rs2];
                     registers[rd] = dividend / divisor;
                 }
                 return std::nullopt;
-            }
-            else if (funct7 == 0x20)
-            {
+            } else if (funct7 == 0x20) {
                 // sraw
                 registers[rd] = (int32_t)registers[rs1] >> (int32_t)shamt;
                 return std::nullopt;
             }
             std::cout << "IllegalInstruction(15): " << instruction << std::endl;
             return Exception(ExceptionType::IllegalInstruction);
-        case 0x7:
-        {
+        case 0x7: {
             // remuw
-            if (registers[rs2] == 0)
-            {
+            if (registers[rs2] == 0) {
                 registers[rd] = registers[rs1];
-            }
-            else
-            {
+            } else {
                 uint32_t dividend = registers[rs1];
                 uint32_t divisor = registers[rs2];
                 registers[rd] = (int32_t)(dividend % divisor);
@@ -587,51 +484,43 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             return Exception(ExceptionType::IllegalInstruction);
         }
     }
-    case 0x63:
-    {
+    case 0x63: {
         uint64_t imm = (uint64_t)((int64_t)(int32_t)(instruction & 0x80000000) >> 19) | ((instruction & 0x80) << 4) | ((instruction >> 20) & 0x7e0) | ((instruction >> 7) & 0x1e);
 
-        switch (funct3)
-        {
+        switch (funct3) {
         case 0x0:
             // beq
-            if (registers[rs1] == registers[rs2])
-            {
+            if (registers[rs1] == registers[rs2]) {
                 pc = pc + imm - 4;
             }
             return std::nullopt;
         case 0x1:
             // bne
-            if (registers[rs1] != registers[rs2])
-            {
+            if (registers[rs1] != registers[rs2]) {
                 pc = pc + imm - 4;
             }
             return std::nullopt;
         case 0x4:
             // blt
-            if ((int64_t)registers[rs1] < (int64_t)registers[rs2])
-            {
+            if ((int64_t)registers[rs1] < (int64_t)registers[rs2]) {
                 pc = pc + imm - 4;
             }
             return std::nullopt;
         case 0x5:
             // bge
-            if ((int64_t)registers[rs1] >= (int64_t)registers[rs2])
-            {
+            if ((int64_t)registers[rs1] >= (int64_t)registers[rs2]) {
                 pc = pc + imm - 4;
             }
             return std::nullopt;
         case 0x6:
             // bltu
-            if (registers[rs1] < registers[rs2])
-            {
+            if (registers[rs1] < registers[rs2]) {
                 pc = pc + imm - 4;
             }
             return std::nullopt;
         case 0x7:
             // bgeu
-            if (registers[rs1] >= registers[rs2])
-            {
+            if (registers[rs1] >= registers[rs2]) {
                 pc = pc + imm - 4;
             }
             return std::nullopt;
@@ -640,8 +529,7 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             return Exception(ExceptionType::IllegalInstruction);
         }
     }
-    case 0x67:
-    {
+    case 0x67: {
         // jalr
         auto temp = pc;
         uint64_t imm = (int64_t)(int32_t)(instruction & 0xfff00000) >> 20;
@@ -649,27 +537,21 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
         registers[rd] = temp;
         return std::nullopt;
     }
-    case 0x6f:
-    {
+    case 0x6f: {
         // jal
         registers[rd] = pc;
         uint64_t imm = (uint64_t)((int64_t)(int32_t)(instruction & 0x80000000) >> 11) | (instruction & 0xff000) | ((instruction >> 9) & 0x800) | ((instruction >> 20) & 0x7fe);
         pc = pc + imm - 4;
         return std::nullopt;
     }
-    case 0x73:
-    {
+    case 0x73: {
         uint64_t csr_addr = (instruction & 0xfff00000) >> 20;
 
-        switch (funct3)
-        {
-        case 0x0:
-        {
-            if (rs2 == 0x0 && funct7 == 0x0)
-            {
+        switch (funct3) {
+        case 0x0: {
+            if (rs2 == 0x0 && funct7 == 0x0) {
                 // ecall
-                switch (mode)
-                {
+                switch (mode) {
                 case Mode::User:
                     return Exception(ExceptionType::EnvironmentCallFromUMode);
                 case Mode::Supervisor:
@@ -677,16 +559,11 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
                 case Mode::Machine:
                     return Exception(ExceptionType::EnvironmentCallFromMMode);
                 }
-            }
-            else if (rs2 == 0x1 && funct7 == 0x0)
-            {
+            } else if (rs2 == 0x1 && funct7 == 0x0) {
                 // ebreak
                 return Exception(ExceptionType::Breakpoint);
-            }
-            else if (rs2 == 0x2)
-            {
-                if (funct7 == 0x8)
-                {
+            } else if (rs2 == 0x2) {
+                if (funct7 == 0x8) {
                     // sret
                     pc = load_csr(SEPC);
 
@@ -702,23 +579,16 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
                     store_csr(SSTATUS, load_csr(SSTATUS) & ~(1 << 8));
 
                     return std::nullopt;
-                }
-                else if (funct7 == 0x18)
-                {
+                } else if (funct7 == 0x18) {
                     // mret
                     pc = load_csr(MEPC);
 
                     auto mpp = (load_csr(MSTATUS) >> 11) & 0b11;
-                    if (mpp == 2)
-                    {
+                    if (mpp == 2) {
                         mode = Mode::Machine;
-                    }
-                    else if (mpp == 1)
-                    {
+                    } else if (mpp == 1) {
                         mode = Mode::Supervisor;
-                    }
-                    else
-                    {
+                    } else {
                         mode = Mode::User;
                     }
 
@@ -731,26 +601,19 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
                     store_csr(MSTATUS, load_csr(MSTATUS) & ~(0b11 << 11));
 
                     return std::nullopt;
-                }
-                else
-                {
+                } else {
                     std::cout << "IllegalInstruction(18): " << instruction << std::endl;
                     return Exception(ExceptionType::IllegalInstruction);
                 }
-            }
-            else if (funct7 == 0x9)
-            {
+            } else if (funct7 == 0x9) {
                 // sfence.vma
                 return std::nullopt;
-            }
-            else
-            {
+            } else {
                 std::cout << "IllegalInstruction(19): " << instruction << std::endl;
                 return Exception(ExceptionType::IllegalInstruction);
             }
         }
-        case 0x1:
-        {
+        case 0x1: {
             // csrrw
             auto temp = load_csr(csr_addr);
             store_csr(csr_addr, registers[rs1]);
@@ -758,8 +621,7 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             update_paging(csr_addr);
             return std::nullopt;
         }
-        case 0x2:
-        {
+        case 0x2: {
             // csrrs
             auto temp = load_csr(csr_addr);
             store_csr(csr_addr, temp | registers[rs1]);
@@ -767,8 +629,7 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             update_paging(csr_addr);
             return std::nullopt;
         }
-        case 0x3:
-        {
+        case 0x3: {
             // csrrc
             auto temp = load_csr(csr_addr);
             store_csr(csr_addr, temp & ~registers[rs1]);
@@ -776,8 +637,7 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             update_paging(csr_addr);
             return std::nullopt;
         }
-        case 0x5:
-        {
+        case 0x5: {
             // csrrwi
             uint64_t zimm = rs1;
             registers[rd] = load_csr(csr_addr);
@@ -785,8 +645,7 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             update_paging(csr_addr);
             return std::nullopt;
         }
-        case 0x6:
-        {
+        case 0x6: {
             // csrrsi
             uint64_t zimm = rs1;
             auto temp = load_csr(csr_addr);
@@ -795,8 +654,7 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
             update_paging(csr_addr);
             return std::nullopt;
         }
-        case 0x7:
-        {
+        case 0x7: {
             // csrrci
             uint64_t zimm = rs1;
             auto temp = load_csr(csr_addr);
@@ -816,29 +674,23 @@ std::optional<Exception> Cpu::execute(uint32_t instruction)
     }
 }
 
-void Cpu::take_trap(Trap &trap, bool is_interrupt)
-{
+void Cpu::take_trap(Trap &trap, bool is_interrupt) {
     uint64_t exception_pc = pc - 4;
     Mode previous_mode = mode;
 
     auto cause = trap.get_code();
 
-    if (is_interrupt)
-    {
+    if (is_interrupt) {
         cause = ((uint64_t)1 << 63) | cause;
     }
 
-    if (previous_mode <= Mode::Supervisor && ((load_csr(MEDELEG) >> (uint32_t)cause) & 1) != 0)
-    {
+    if (previous_mode <= Mode::Supervisor && ((load_csr(MEDELEG) >> (uint32_t)cause) & 1) != 0) {
         setMode(Mode::Supervisor);
 
-        if (is_interrupt)
-        {
+        if (is_interrupt) {
             auto vector = (load_csr(STVEC) & 1) == 1 ? 4 * cause : 0;
             setPc((load_csr(STVEC) & ~1) + vector);
-        }
-        else
-        {
+        } else {
             setPc(load_csr(STVEC) & ~1);
         }
 
@@ -849,26 +701,18 @@ void Cpu::take_trap(Trap &trap, bool is_interrupt)
         store_csr(SSTATUS, ((load_csr(SSTATUS) >> 1) & 1) == 1 ? load_csr(SSTATUS) | (1 << 5) : load_csr(SSTATUS) & ~(1 << 5));
         store_csr(SSTATUS, load_csr(SSTATUS) & ~(1 << 1));
 
-        if (previous_mode == Mode::User)
-        {
+        if (previous_mode == Mode::User) {
             store_csr(SSTATUS, load_csr(SSTATUS) & ~(1 << 8));
-        }
-        else
-        {
+        } else {
             store_csr(SSTATUS, load_csr(SSTATUS) | (1 << 8));
         }
-    }
-    else
-    {
+    } else {
         setMode(Mode::Machine);
 
-        if (is_interrupt)
-        {
+        if (is_interrupt) {
             auto vector = (load_csr(MTVEC) & 1) == 1 ? 4 * cause : 0;
             setPc((load_csr(MTVEC) & ~1) + vector);
-        }
-        else
-        {
+        } else {
             setPc(load_csr(MTVEC) & ~1);
         }
 
@@ -881,102 +725,83 @@ void Cpu::take_trap(Trap &trap, bool is_interrupt)
     }
 }
 
-std::optional<Interrupt> Cpu::check_pending_interrupt()
-{
+std::optional<Interrupt> Cpu::check_pending_interrupt() {
     if (
         (mode == Mode::Machine && ((load_csr(MSTATUS) >> 3) & 1) == 0) ||
-        (mode == Mode::Supervisor && ((load_csr(SSTATUS) >> 1) & 1) == 0))
-    {
+        (mode == Mode::Supervisor && ((load_csr(SSTATUS) >> 1) & 1) == 0)) {
         return std::nullopt;
     }
 
     uint64_t irq;
-    if (bus.uart.is_interrupting())
-    {
+    if (bus.uart.is_interrupting()) {
         irq = UART_IRQ;
-    }
-    else if (bus.virtio.is_interrupting())
-    {
+    } else if (bus.virtio.is_interrupting()) {
         disk_access();
         irq = VIRTIO_IRQ;
-    }
-    else
-    {
+    } else {
         irq = 0;
     }
 
-    if (irq != 0)
-    {
+    if (irq != 0) {
         store(PLIC_SCLAIM, 4, irq);
         store_csr(MIP, load_csr(MIP) | MIP_SEIP);
     }
 
     auto pending = load_csr(MIE) & load_csr(MIP);
 
-    if ((pending & MIP_MEIP) != 0)
-    {
+    if ((pending & MIP_MEIP) != 0) {
         store_csr(MIP, load_csr(MIP) & ~MIP_MEIP);
         return Interrupt(InterruptType::MachineExternalInterrupt);
     }
-    if ((pending & MIP_MSIP) != 0)
-    {
+    if ((pending & MIP_MSIP) != 0) {
         store_csr(MIP, load_csr(MIP) & ~MIP_MSIP);
         return Interrupt(InterruptType::MachineSoftwareInterrupt);
     }
-    if ((pending & MIP_MTIP) != 0)
-    {
+    if ((pending & MIP_MTIP) != 0) {
         store_csr(MIP, load_csr(MIP) & ~MIP_MTIP);
         return Interrupt(InterruptType::MachineTimerInterrupt);
     }
-    if ((pending & MIP_SEIP) != 0)
-    {
+    if ((pending & MIP_SEIP) != 0) {
         store_csr(MIP, load_csr(MIP) & ~MIP_SEIP);
         return Interrupt(InterruptType::SupervisorExternalInterrupt);
     }
-    if ((pending & MIP_SSIP) != 0)
-    {
+    if ((pending & MIP_SSIP) != 0) {
         store_csr(MIP, load_csr(MIP) & ~MIP_SSIP);
         return Interrupt(InterruptType::SupervisorSoftwareInterrupt);
     }
-    if ((pending & MIP_STIP) != 0)
-    {
+    if ((pending & MIP_STIP) != 0) {
         store_csr(MIP, load_csr(MIP) & ~MIP_STIP);
         return Interrupt(InterruptType::SupervisorTimerInterrupt);
     }
     return std::nullopt;
 }
 
-void Cpu::disk_access()
-{
+void Cpu::disk_access() {
     auto desc_addr = bus.virtio.desc_addr();
     auto avail_addr = bus.virtio.desc_addr() + 0x40;
     auto used_addr = bus.virtio.desc_addr() + 4096;
 
     auto [offset, offset_err] = load(avail_addr + 1, 2);
-    if (offset_err.has_value())
-    {
+    if (offset_err.has_value()) {
         std::cerr << "error: disk_access()" << std::endl;
         std::exit(EXIT_FAILURE);
     }
 
     auto [index, index_err] = load(avail_addr + (offset % DESC_NUM) + 2, 2);
-    if (index_err.has_value())
-    {
+    if (index_err.has_value()) {
         std::cerr << "error: disk_access()" << std::endl;
         std::exit(EXIT_FAILURE);
     }
 
     auto desc_addr0 = desc_addr + VRING_DESC_SIZE * index;
     auto [addr0, addr0_err] = load(desc_addr0, 8);
-    if (addr0_err.has_value())
-    {
+    if (addr0_err.has_value()) {
         std::cerr << "error: disk_access()" << std::endl;
         std::exit(EXIT_FAILURE);
     }
 
     auto [next0, next_err] = load(desc_addr0 + 14, 2);
-    if (next_err.has_value())
-    {
+    if (next_err.has_value()) {
         std::cerr << "error: disk_access()" << std::endl;
         std::exit(EXIT_FAILURE);
     }
@@ -984,54 +809,43 @@ void Cpu::disk_access()
     auto desc_addr1 = desc_addr + VRING_DESC_SIZE * next0;
 
     auto [addr1, addr1_err] = load(desc_addr1, 8);
-    if (addr1_err.has_value())
-    {
+    if (addr1_err.has_value()) {
         std::cerr << "error: disk_access()" << std::endl;
         std::exit(EXIT_FAILURE);
     }
 
     auto [len1, len1_err] = load(desc_addr1 + 8, 4);
-    if (len1_err.has_value())
-    {
+    if (len1_err.has_value()) {
         std::cerr << "error: disk_access()" << std::endl;
         std::exit(EXIT_FAILURE);
     }
 
     auto [flags1, flags1_err] = load(desc_addr1 + 12, 2);
-    if (flags1_err.has_value())
-    {
+    if (flags1_err.has_value()) {
         std::cerr << "error: disk_access()" << std::endl;
         std::exit(EXIT_FAILURE);
     }
 
     auto [blk_sector, blk_sector_err] = load(addr0 + 8, 8);
-    if (blk_sector_err.has_value())
-    {
+    if (blk_sector_err.has_value()) {
         std::cerr << "error: disk_access()" << std::endl;
         std::exit(EXIT_FAILURE);
     }
 
-    if ((flags1 & 2) == 0)
-    {
-        for (uint64_t i = 0; i < len1; i++)
-        {
+    if ((flags1 & 2) == 0) {
+        for (uint64_t i = 0; i < len1; i++) {
             auto [data, data_err] = load(addr1 + i, 1);
-            if (data_err.has_value())
-            {
+            if (data_err.has_value()) {
                 std::cerr << "error: disk_access()" << std::endl;
                 std::exit(EXIT_FAILURE);
             }
             bus.virtio.write_disk(blk_sector * 512 + i, data);
         }
-    }
-    else
-    {
-        for (uint64_t i = 0; i < len1; i++)
-        {
+    } else {
+        for (uint64_t i = 0; i < len1; i++) {
             auto data = bus.virtio.read_disk(blk_sector * 512 + i);
             auto data_err = store(addr1 + i, 1, data);
-            if (data_err.has_value())
-            {
+            if (data_err.has_value()) {
                 std::cerr << "error: disk_access()" << std::endl;
                 std::exit(EXIT_FAILURE);
             }
@@ -1040,36 +854,28 @@ void Cpu::disk_access()
 
     auto new_id = bus.virtio.get_new_id();
     auto err = store(used_addr + 2, 2, new_id % 8);
-    if (err.has_value())
-    {
+    if (err.has_value()) {
         std::cerr << "error: disk_access()" << std::endl;
         std::exit(EXIT_FAILURE);
     }
 }
 
-void Cpu::update_paging(uint64_t csr_addr)
-{
-    if (csr_addr != SATP)
-    {
+void Cpu::update_paging(uint64_t csr_addr) {
+    if (csr_addr != SATP) {
         return;
     }
 
     page_table = (load_csr(SATP) & (((uint64_t)1 << 44) - 1)) * PAGE_SIZE;
 
-    if ((load_csr(SATP) >> 60) == 8)
-    {
+    if ((load_csr(SATP) >> 60) == 8) {
         enable_paging = true;
-    }
-    else
-    {
+    } else {
         enable_paging = false;
     }
 }
 
-std::pair<uint64_t, std::optional<Exception>> Cpu::translate(uint64_t addr, AccessType access_type)
-{
-    if (!enable_paging)
-    {
+std::pair<uint64_t, std::optional<Exception>> Cpu::translate(uint64_t addr, AccessType access_type) {
+    if (!enable_paging) {
         return std::make_pair(addr, std::nullopt);
     }
 
@@ -1084,11 +890,9 @@ std::pair<uint64_t, std::optional<Exception>> Cpu::translate(uint64_t addr, Acce
     auto i = levels - 1;
     uint64_t pte;
 
-    while (true)
-    {
+    while (true) {
         auto [data, err] = bus.load(a + vpn[i] * 8, 8);
-        if (err.has_value())
-        {
+        if (err.has_value()) {
             std::cerr << "error: translate()" << std::endl;
             std::exit(EXIT_FAILURE);
         }
@@ -1098,10 +902,8 @@ std::pair<uint64_t, std::optional<Exception>> Cpu::translate(uint64_t addr, Acce
         auto r = (pte >> 1) & 1;
         auto w = (pte >> 2) & 1;
         auto x = (pte >> 3) & 1;
-        if (v == 0 || (r == 0 && w == 1))
-        {
-            switch (access_type)
-            {
+        if (v == 0 || (r == 0 && w == 1)) {
+            switch (access_type) {
             case AccessType::Instruction:
                 return std::make_pair(0, Exception(ExceptionType::InstructionPageFault));
             case AccessType::Load:
@@ -1114,17 +916,14 @@ std::pair<uint64_t, std::optional<Exception>> Cpu::translate(uint64_t addr, Acce
             }
         }
 
-        if (r == 1 || x == 1)
-        {
+        if (r == 1 || x == 1) {
             break;
         }
         i--;
         auto ppn = (pte >> 10) & 0x0fff'ffff'ffff;
         a = ppn * PAGE_SIZE;
-        if (i < 0)
-        {
-            switch (access_type)
-            {
+        if (i < 0) {
+            switch (access_type) {
             case AccessType::Instruction:
                 return std::make_pair(0, Exception(ExceptionType::InstructionPageFault));
             case AccessType::Load:
@@ -1140,16 +939,13 @@ std::pair<uint64_t, std::optional<Exception>> Cpu::translate(uint64_t addr, Acce
 
     auto offset = addr & 0xfff;
 
-    switch (i)
-    {
-    case 0:
-    {
+    switch (i) {
+    case 0: {
         auto ppn = (pte >> 10) & 0x0fff'ffff'ffff;
         return std::make_pair((ppn << 12) | offset, std::nullopt);
     }
     case 1:
-    case 2:
-    {
+    case 2: {
         uint64_t ppn[] = {
             (pte >> 10) & 0x1ff,
             (pte >> 19) & 0x1ff,
@@ -1158,8 +954,7 @@ std::pair<uint64_t, std::optional<Exception>> Cpu::translate(uint64_t addr, Acce
         return std::make_pair((ppn[2] << 30) | (ppn[1] << 21) | (vpn[0] << 12) | offset, std::nullopt);
     }
     default:
-        switch (access_type)
-        {
+        switch (access_type) {
         case AccessType::Instruction:
             return std::make_pair(0, Exception(ExceptionType::InstructionPageFault));
         case AccessType::Load:

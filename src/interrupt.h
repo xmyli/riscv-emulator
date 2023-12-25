@@ -3,8 +3,7 @@
 
 #include "trap.h"
 
-enum InterruptType
-{
+enum InterruptType {
     UserSoftwareInterrupt,
     SupervisorSoftwareInterrupt,
     MachineSoftwareInterrupt,
@@ -16,8 +15,7 @@ enum InterruptType
     MachineExternalInterrupt,
 };
 
-class Interrupt : public Trap
-{
+class Interrupt : public Trap {
 private:
     InterruptType type;
 

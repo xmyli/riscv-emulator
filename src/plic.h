@@ -10,8 +10,7 @@
 #define PLIC_SPRIORITY (PLIC_BASE + 0x201000)
 #define PLIC_SCLAIM (PLIC_BASE + 0x201004)
 
-class PLIC : public Device
-{
+class PLIC : public Device {
 private:
     uint64_t pending;
     uint64_t senable;

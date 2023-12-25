@@ -4,10 +4,8 @@
 
 Exception::Exception(ExceptionType type) : type{type} {}
 
-uint64_t Exception::get_code()
-{
-    switch (type)
-    {
+uint64_t Exception::get_code() {
+    switch (type) {
     case ExceptionType::InstructionAddressMisaligned:
         return 0;
     case ExceptionType::InstructionAccessFault:
@@ -42,10 +40,8 @@ uint64_t Exception::get_code()
     }
 }
 
-bool Exception::is_fatal()
-{
-    switch (type)
-    {
+bool Exception::is_fatal() {
+    switch (type) {
     case ExceptionType::InstructionAddressMisaligned:
         return true;
     case ExceptionType::InstructionAccessFault:

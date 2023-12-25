@@ -4,12 +4,9 @@
 
 PLIC::PLIC() : pending{0}, senable{0}, spriority{0}, sclaim{0} {}
 
-std::pair<uint64_t, std::optional<Exception>> PLIC::load(uint64_t addr, int nBytes)
-{
-    if (nBytes == 4)
-    {
-        switch (addr)
-        {
+std::pair<uint64_t, std::optional<Exception>> PLIC::load(uint64_t addr, int nBytes) {
+    if (nBytes == 4) {
+        switch (addr) {
         case PLIC_PENDING:
             return std::make_pair(pending, std::nullopt);
         case PLIC_SENABLE:
@@ -25,12 +22,9 @@ std::pair<uint64_t, std::optional<Exception>> PLIC::load(uint64_t addr, int nByt
     return std::make_pair(0, Exception(ExceptionType::LoadAccessFault));
 }
 
-std::optional<Exception> PLIC::store(uint64_t addr, int nBytes, uint64_t value)
-{
-    if (nBytes == 4)
-    {
-        switch (addr)
-        {
+std::optional<Exception> PLIC::store(uint64_t addr, int nBytes, uint64_t value) {
+    if (nBytes == 4) {
+        switch (addr) {
         case PLIC_PENDING:
             pending = value;
             return std::nullopt;

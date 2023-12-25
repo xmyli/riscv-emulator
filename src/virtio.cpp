@@ -10,16 +10,12 @@ Virtio::Virtio(std::vector<uint8_t> disk_image) : id{0},
                                                   queue_pfn{0},
                                                   queue_notify{UINT32_MAX},
                                                   status{0},
-                                                  disk{disk_image}
-{
+                                                  disk{disk_image} {
 }
 
-std::pair<uint64_t, std::optional<Exception>> Virtio::load(uint64_t addr, int nBytes)
-{
-    if (nBytes == 4)
-    {
-        switch (addr)
-        {
+std::pair<uint64_t, std::optional<Exception>> Virtio::load(uint64_t addr, int nBytes) {
+    if (nBytes == 4) {
+        switch (addr) {
         case VIRTIO_MAGIC:
             return std::make_pair(0x74726976, std::nullopt);
         case VIRTIO_VERSION:
@@ -46,12 +42,9 @@ std::pair<uint64_t, std::optional<Exception>> Virtio::load(uint64_t addr, int nB
     return std::make_pair(0, Exception(ExceptionType::LoadAccessFault));
 }
 
-std::optional<Exception> Virtio::store(uint64_t addr, int nBytes, uint64_t value)
-{
-    if (nBytes == 4)
-    {
-        switch (addr)
-        {
+std::optional<Exception> Virtio::store(uint64_t addr, int nBytes, uint64_t value) {
+    if (nBytes == 4) {
+        switch (addr) {
         case VIRTIO_DEVICE_FEATURES:
             driver_features = value;
             return std::nullopt;
@@ -80,33 +73,27 @@ std::optional<Exception> Virtio::store(uint64_t addr, int nBytes, uint64_t value
     return Exception(ExceptionType::StoreAMOAccessFault);
 }
 
-bool Virtio::is_interrupting()
-{
-    if (queue_notify != UINT32_MAX)
-    {
+bool Virtio::is_interrupting() {
+    if (queue_notify != UINT32_MAX) {
         queue_notify = UINT32_MAX;
         return true;
     }
     return false;
 }
 
-uint64_t Virtio::get_new_id()
-{
+uint64_t Virtio::get_new_id() {
     id += 1;
     return id;
 }
 
-uint64_t Virtio::desc_addr()
-{
+uint64_t Virtio::desc_addr() {
     return (uint64_t)queue_pfn * (uint64_t)page_size;
 }
 
-uint64_t Virtio::read_disk(uint64_t addr)
-{
+uint64_t Virtio::read_disk(uint64_t addr) {
     return disk[addr];
 }
 
-void Virtio::write_disk(uint64_t addr, uint64_t value)
-{
+void Virtio::write_disk(uint64_t addr, uint64_t value) {
     disk[addr] = value;
 }

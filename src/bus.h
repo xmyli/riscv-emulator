@@ -4,15 +4,14 @@
 #include <cstdint>
 #include <vector>
 
+#include "clint.h"
 #include "exception.h"
 #include "memory.h"
-#include "clint.h"
 #include "plic.h"
 #include "uart.h"
 #include "virtio.h"
 
-class Bus
-{
+class Bus {
 public:
     Memory memory;
     CLINT clint;

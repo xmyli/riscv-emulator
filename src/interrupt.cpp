@@ -4,10 +4,8 @@
 
 Interrupt::Interrupt(InterruptType type) : type{type} {}
 
-uint64_t Interrupt::get_code()
-{
-    switch (type)
-    {
+uint64_t Interrupt::get_code() {
+    switch (type) {
     case InterruptType::UserSoftwareInterrupt:
         return 0;
     case InterruptType::SupervisorSoftwareInterrupt:

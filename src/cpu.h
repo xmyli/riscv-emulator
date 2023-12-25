@@ -4,9 +4,9 @@
 #include <cstdint>
 #include <vector>
 
+#include "bus.h"
 #include "exception.h"
 #include "interrupt.h"
-#include "bus.h"
 
 #define PAGE_SIZE 4096
 
@@ -40,22 +40,19 @@
 #define SIP 0x144
 #define SATP 0x180
 
-enum Mode
-{
+enum Mode {
     User = 0b00,
     Supervisor = 0b01,
     Machine = 0b11,
 };
 
-enum AccessType
-{
+enum AccessType {
     Instruction,
     Load,
     Store,
 };
 
-class Cpu
-{
+class Cpu {
 private:
     uint64_t registers[32];
     uint64_t csrs[4096];

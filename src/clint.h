@@ -8,8 +8,7 @@
 #define CLINT_MTIMECMP (CLINT_BASE + 0x4000)
 #define CLINT_MTIME (CLINT_BASE + 0xbff8)
 
-class CLINT : public Device
-{
+class CLINT : public Device {
 private:
     uint64_t mtime;
     uint64_t mtimecmp;

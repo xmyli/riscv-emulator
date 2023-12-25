@@ -1,17 +1,15 @@
-#include <cstdint>
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <string>
 #include <bitset>
+#include <cstdint>
+#include <fstream>
+#include <iostream>
 #include <iterator>
+#include <string>
+#include <vector>
 
 #include "cpu.h"
 
-int main(int argc, char *argv[])
-{
-    if (argc != 3)
-    {
+int main(int argc, char *argv[]) {
+    if (argc != 3) {
         std::cerr << "error: invalid number of parameters" << std::endl;
         return EXIT_FAILURE;
     }
@@ -41,14 +39,11 @@ int main(int argc, char *argv[])
 
     Cpu cpu(binary, disk_image);
 
-    while (true)
-    {
+    while (true) {
         auto [instruction, f_err] = cpu.fetch();
-        if (f_err.has_value())
-        {
+        if (f_err.has_value()) {
             cpu.take_trap(f_err.value(), false);
-            if (f_err->is_fatal())
-            {
+            if (f_err->is_fatal()) {
                 break;
             }
         }
@@ -56,18 +51,15 @@ int main(int argc, char *argv[])
         cpu.setPc(cpu.getPc() + 4);
 
         auto e_err = cpu.execute(instruction);
-        if (e_err.has_value())
-        {
+        if (e_err.has_value()) {
             cpu.take_trap(e_err.value(), false);
-            if (e_err->is_fatal())
-            {
+            if (e_err->is_fatal()) {
                 break;
             }
         }
 
         auto interrupt = cpu.check_pending_interrupt();
-        if (interrupt.has_value())
-        {
+        if (interrupt.has_value()) {
             cpu.take_trap(interrupt.value(), true);
         }
     }

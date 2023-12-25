@@ -1,10 +1,10 @@
 #ifndef UART_H
 #define UART_H
 
-#include <vector>
 #include <atomic>
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
+#include <vector>
 
 #include "device.h"
 
@@ -18,8 +18,7 @@
 #define UART_LSR_RX 1
 #define UART_LSR_TX (1 << 5)
 
-class Uart : public Device
-{
+class Uart : public Device {
 private:
     std::mutex lock;
     std::condition_variable condvar;

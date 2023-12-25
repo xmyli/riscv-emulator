@@ -26,8 +26,7 @@
 #define VIRTIO_QUEUE_NOTIFY (VIRTIO_BASE + 0x050)
 #define VIRTIO_STATUS (VIRTIO_BASE + 0x070)
 
-class Virtio : public Device
-{
+class Virtio : public Device {
 private:
     uint64_t id;
     uint32_t driver_features;

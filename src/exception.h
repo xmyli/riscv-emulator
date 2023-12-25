@@ -3,8 +3,7 @@
 
 #include "trap.h"
 
-enum ExceptionType
-{
+enum ExceptionType {
     InstructionAddressMisaligned,
     InstructionAccessFault,
     IllegalInstruction,
@@ -21,8 +20,7 @@ enum ExceptionType
     StoreAMOPageFault,
 };
 
-class Exception : public Trap
-{
+class Exception : public Trap {
 private:
     ExceptionType type;
 

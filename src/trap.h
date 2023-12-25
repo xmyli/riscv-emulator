@@ -3,8 +3,7 @@
 
 #include <cstdint>
 
-class Trap
-{
+class Trap {
 public:
     virtual uint64_t get_code() = 0;
 };

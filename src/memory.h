@@ -2,8 +2,8 @@
 #define MEMORY_H
 
 #include <cstdint>
-#include <vector>
 #include <optional>
+#include <vector>
 
 #include "device.h"
 #include "exception.h"
@@ -11,8 +11,7 @@
 #define MEMORY_SIZE (1024 * 1024 * 128)
 #define MEMORY_BASE 0x80000000
 
-class Memory : public Device
-{
+class Memory : public Device {
 private:
     std::vector<uint8_t> data;
 
